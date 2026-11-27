@@ -1,0 +1,383 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1 / Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Hardened Global Primitives
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Zero-lookup owner check for list queries (Pillar 8 Cost-Optimization Clause)
+    function isPrimaryOwner() {
+      return isVerifiedEmail() && request.auth.token.email == 'mihal4ik11@gmail.com';
+    }
+
+    function isAdmin() {
+      return isPrimaryOwner() || (
+        isVerifiedEmail() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 2 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidVisibility(val) {
+      return val is string && (val == 'draft' || val == 'published' || val == 'unlisted');
+    }
+
+    function isValidCategory(val) {
+      return val is string && (val == 'ai' || val == 'bi' || val == 'etl');
+    }
+
+    function isValidServiceId(val) {
+      return val is string && (
+        val == 'ai-agents' ||
+        val == 'bi-dashboards' ||
+        val == 'etl-pipelines' ||
+        val == 'audit-architecture'
+      );
+    }
+
+    function isBoundedString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidStringList(listVal, maxItems) {
+      return listVal is list
+        && listVal.size() <= maxItems
+        && (listVal.size() == 0 || (listVal[0] is string && listVal[0].size() <= 80));
+    }
+
+    function isValidMapList(listVal, maxItems) {
+      return listVal is list
+        && listVal.size() <= maxItems
+        && (listVal.size() == 0 || listVal[0] is map);
+    }
+
+    function isValidTestimonial(val) {
+      return val is map
+        && val.keys().hasAll(['quoteUk', 'quoteEn', 'authorUk', 'authorEn', 'roleUk', 'roleEn', 'company'])
+        && val.keys().hasOnly(['quoteUk', 'quoteEn', 'authorUk', 'authorEn', 'roleUk', 'roleEn', 'company'])
+        && isBoundedString(val.quoteUk, 0, 500)
+        && isBoundedString(val.quoteEn, 0, 500)
+        && isBoundedString(val.authorUk, 0, 100)
+        && isBoundedString(val.authorEn, 0, 100)
+        && isBoundedString(val.roleUk, 0, 100)
+        && isBoundedString(val.roleEn, 0, 100)
+        && isBoundedString(val.company, 0, 120);
+    }
+
+    // =========================================================================
+    // Pillar 2: Entity Validation Blueprints (Anti-Update-Gap)
+    // =========================================================================
+    function isValidPortfolioCase(data, caseId) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'status', 'sortOrder', 'featuredInHero', 'category',
+          'relatedServiceId', 'year', 'titleUk', 'titleEn', 'industryUk', 'industryEn',
+          'durationUk', 'durationEn', 'headlineMetricUk', 'headlineMetricEn',
+          'summaryUk', 'summaryEn', 'challengeUk', 'challengeEn', 'solutionUk', 'solutionEn',
+          'stack', 'metrics', 'testimonial', 'coverMediaId', 'scenes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'status', 'sortOrder', 'featuredInHero', 'category',
+          'relatedServiceId', 'year', 'titleUk', 'titleEn', 'industryUk', 'industryEn',
+          'durationUk', 'durationEn', 'headlineMetricUk', 'headlineMetricEn',
+          'summaryUk', 'summaryEn', 'challengeUk', 'challengeEn', 'solutionUk', 'solutionEn',
+          'stack', 'metrics', 'testimonial', 'coverMediaId', 'scenes', 'createdAt', 'updatedAt'
+        ])
+        && data.id == caseId
+        && isBoundedString(data.id, 2, 80)
+        && data.ownerId == request.auth.uid
+        && isBoundedString(data.ownerId, 1, 128)
+        && isValidVisibility(data.status)
+        && data.sortOrder is number && data.sortOrder >= 0 && data.sortOrder <= 9999
+        && data.featuredInHero is bool
+        && isValidCategory(data.category)
+        && isValidServiceId(data.relatedServiceId)
+        && data.year is string && data.year.size() == 4 && data.year.matches('^[0-9]{4}$')
+        && isBoundedString(data.titleUk, 2, 160)
+        && isBoundedString(data.titleEn, 0, 160)
+        && isBoundedString(data.industryUk, 0, 120)
+        && isBoundedString(data.industryEn, 0, 120)
+        && isBoundedString(data.durationUk, 0, 60)
+        && isBoundedString(data.durationEn, 0, 60)
+        && isBoundedString(data.headlineMetricUk, 0, 100)
+        && isBoundedString(data.headlineMetricEn, 0, 100)
+        && isBoundedString(data.summaryUk, 0, 600)
+        && isBoundedString(data.summaryEn, 0, 600)
+        && isBoundedString(data.challengeUk, 0, 1200)
+        && isBoundedString(data.challengeEn, 0, 1200)
+        && isBoundedString(data.solutionUk, 0, 1600)
+        && isBoundedString(data.solutionEn, 0, 1600)
+        && isValidStringList(data.stack, 15)
+        && isValidMapList(data.metrics, 6)
+        && isValidTestimonial(data.testimonial)
+        && isBoundedString(data.coverMediaId, 0, 128)
+        && isValidMapList(data.scenes, 10)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCaseMedia(data, mediaId) {
+      return data.keys().hasAll([
+          'id', 'caseId', 'ownerId', 'visibility', 'mimeType', 'dataUrl',
+          'width', 'height', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'caseId', 'ownerId', 'visibility', 'mimeType', 'dataUrl',
+          'width', 'height', 'createdAt', 'updatedAt'
+        ])
+        && data.id == mediaId
+        && isValidId(data.caseId)
+        && data.caseId.size() <= 80
+        && data.ownerId == request.auth.uid
+        && isBoundedString(data.ownerId, 1, 128)
+        && isValidVisibility(data.visibility)
+        && data.mimeType is string
+        && (data.mimeType == 'image/webp' || data.mimeType == 'image/png' || data.mimeType == 'image/jpeg')
+        && data.dataUrl is string
+        && data.dataUrl.size() >= 30
+        && data.dataUrl.size() <= 650000
+        && data.dataUrl.matches('^data:image/(webp|png|jpeg);base64,[A-Za-z0-9+/=]+$')
+        && data.width is number && data.width >= 1 && data.width <= 4096
+        && data.height is number && data.height >= 1 && data.height <= 4096
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCaseWorkflow(data, workflowId) {
+      return data.keys().hasAll([
+          'id', 'caseId', 'ownerId', 'visibility', 'workflowName',
+          'nodes', 'links', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'caseId', 'ownerId', 'visibility', 'workflowName',
+          'nodes', 'links', 'createdAt', 'updatedAt'
+        ])
+        && data.id == workflowId
+        && isValidId(data.caseId)
+        && data.caseId.size() <= 80
+        && data.ownerId == request.auth.uid
+        && isBoundedString(data.ownerId, 1, 128)
+        && isValidVisibility(data.visibility)
+        && isBoundedString(data.workflowName, 1, 160)
+        && isValidMapList(data.nodes, 40)
+        && isValidMapList(data.links, 80)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAiProviderList(listVal) {
+      return listVal is list
+        && listVal.size() <= 4
+        && listVal.hasOnly(['gemini', 'openai', 'anthropic', 'openrouter']);
+    }
+
+    function isValidAiModelId(val, maxLen) {
+      return val is string
+        && val.size() <= maxLen
+        && val.matches('^[a-zA-Z0-9._:/\\-]*$');
+    }
+
+    function isValidPortfolioSettings(data) {
+      return data.keys().hasAll(['ownerId', 'heroCaseId', 'hiddenStaticCaseIds', 'updatedAt'])
+        && data.keys().hasOnly([
+          'ownerId', 'heroCaseId', 'hiddenStaticCaseIds',
+          'aiProviderOrder', 'aiDisabledProviders',
+          'aiOpenaiModel', 'aiAnthropicModel', 'aiOpenrouterModel',
+          'updatedAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && isBoundedString(data.ownerId, 1, 128)
+        && isBoundedString(data.heroCaseId, 0, 80)
+        && isValidStringList(data.hiddenStaticCaseIds, 10)
+        && (!('aiProviderOrder' in data) || isValidAiProviderList(data.aiProviderOrder))
+        && (!('aiDisabledProviders' in data) || isValidAiProviderList(data.aiDisabledProviders))
+        && (!('aiOpenaiModel' in data) || isValidAiModelId(data.aiOpenaiModel, 80))
+        && (!('aiAnthropicModel' in data) || isValidAiModelId(data.aiAnthropicModel, 80))
+        && (!('aiOpenrouterModel' in data) || isValidAiModelId(data.aiOpenrouterModel, 120))
+        && data.updatedAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection Match Blocks (Exhaustive from firebase-blueprint.json)
+    // =========================================================================
+
+    match /cases/{caseId} {
+      allow get: if isValidId(caseId) && (
+        existing().status == 'published' ||
+        existing().status == 'unlisted' ||
+        isAdmin()
+      );
+
+      allow list: if existing().status == 'published'
+        || isPrimaryOwner()
+        || (isVerifiedEmail() && existing().ownerId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && isValidId(caseId)
+        && isValidPortfolioCase(incoming(), caseId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && isAdmin();
+
+      allow update: if isSignedIn()
+        && isValidId(caseId)
+        && isValidPortfolioCase(incoming(), caseId)
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() && (
+            // Action: Full editorial save
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status', 'sortOrder', 'featuredInHero', 'category', 'relatedServiceId',
+              'year', 'titleUk', 'titleEn', 'industryUk', 'industryEn',
+              'durationUk', 'durationEn', 'headlineMetricUk', 'headlineMetricEn',
+              'summaryUk', 'summaryEn', 'challengeUk', 'challengeEn', 'solutionUk', 'solutionEn',
+              'stack', 'metrics', 'testimonial', 'coverMediaId', 'scenes', 'updatedAt'
+            ]) ||
+            // Action: Quick status / order / hero toggle
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['sortOrder', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['featuredInHero', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isSignedIn() && isValidId(caseId) && isAdmin();
+    }
+
+    match /case_media/{mediaId} {
+      allow get: if isValidId(mediaId) && (
+        existing().visibility == 'published' ||
+        existing().visibility == 'unlisted' ||
+        isAdmin()
+      );
+
+      allow list: if isPrimaryOwner()
+        || (isVerifiedEmail() && existing().ownerId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && isValidId(mediaId)
+        && isValidCaseMedia(incoming(), mediaId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && existsAfter(/databases/$(database)/documents/cases/$(incoming().caseId));
+
+      allow update: if isSignedIn()
+        && isValidId(mediaId)
+        && isValidCaseMedia(incoming(), mediaId)
+        && incoming().id == existing().id
+        && incoming().caseId == existing().caseId
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['visibility', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['visibility', 'mimeType', 'dataUrl', 'width', 'height', 'updatedAt'])
+        );
+
+      allow delete: if isSignedIn() && isValidId(mediaId) && isAdmin();
+    }
+
+    match /case_workflows/{workflowId} {
+      allow get: if isValidId(workflowId) && (
+        existing().visibility == 'published' ||
+        existing().visibility == 'unlisted' ||
+        isAdmin()
+      );
+
+      allow list: if isPrimaryOwner()
+        || (isVerifiedEmail() && existing().ownerId == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && isValidId(workflowId)
+        && isValidCaseWorkflow(incoming(), workflowId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && existsAfter(/databases/$(database)/documents/cases/$(incoming().caseId));
+
+      allow update: if isSignedIn()
+        && isValidId(workflowId)
+        && isValidCaseWorkflow(incoming(), workflowId)
+        && incoming().id == existing().id
+        && incoming().caseId == existing().caseId
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['visibility', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['visibility', 'workflowName', 'nodes', 'links', 'updatedAt'])
+        );
+
+      allow delete: if isSignedIn() && isValidId(workflowId) && isAdmin();
+    }
+
+    match /portfolio_settings/{settingId} {
+      allow get: if settingId == 'main';
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && settingId == 'main'
+        && isValidPortfolioSettings(incoming())
+        && incoming().updatedAt == request.time
+        && isAdmin();
+
+      allow update: if isSignedIn()
+        && settingId == 'main'
+        && isValidPortfolioSettings(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && (
+          // Action: Hero showcase & hidden static cases
+          incoming().diff(existing()).affectedKeys().hasOnly(['heroCaseId', 'hiddenStaticCaseIds', 'updatedAt']) ||
+          // Action: Non-secret AI provider routing & model overrides
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'aiProviderOrder', 'aiDisabledProviders',
+            'aiOpenaiModel', 'aiAnthropicModel', 'aiOpenrouterModel',
+            'updatedAt'
+          ]) ||
+          // Action: Combined settings save
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'heroCaseId', 'hiddenStaticCaseIds',
+            'aiProviderOrder', 'aiDisabledProviders',
+            'aiOpenaiModel', 'aiAnthropicModel', 'aiOpenrouterModel',
+            'updatedAt'
+          ])
+        );
+
+      allow delete: if false;
+    }
+
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,384 @@
+{
+  "entities": {
+    "PortfolioCase": {
+      "title": "PortfolioCase",
+      "description": "A dynamic portfolio case study managed from the owner /admin cabinet, containing metadata, metrics, testimonial, and ordered scene descriptors.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "URL-safe case identifier matching the Firestore document ID."
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Firebase Auth UID of the owner who created this case (immutable)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "published", "unlisted"],
+          "description": "Publication visibility: draft (owner only), published (public grid), unlisted (direct NDA link only)."
+        },
+        "sortOrder": {
+          "type": "number",
+          "description": "Explicit display ordering in the portfolio grid (0..9999)."
+        },
+        "featuredInHero": {
+          "type": "boolean",
+          "description": "Whether this case is highlighted as the Hero showcase."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["ai", "bi", "etl"],
+          "description": "Primary portfolio filter category."
+        },
+        "relatedServiceId": {
+          "type": "string",
+          "enum": ["ai-agents", "bi-dashboards", "etl-pipelines", "audit-architecture"],
+          "description": "Matching service track used when prefilling the contact brief."
+        },
+        "year": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4,
+          "pattern": "^[0-9]{4}$",
+          "description": "4-digit delivery year."
+        },
+        "titleUk": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "titleEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 160
+        },
+        "industryUk": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120
+        },
+        "industryEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120
+        },
+        "durationUk": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 60
+        },
+        "durationEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 60
+        },
+        "headlineMetricUk": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "headlineMetricEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "summaryUk": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 600
+        },
+        "summaryEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 600
+        },
+        "challengeUk": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1200
+        },
+        "challengeEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1200
+        },
+        "solutionUk": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1600
+        },
+        "solutionEn": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1600
+        },
+        "stack": {
+          "type": "array",
+          "description": "Bounded list of up to 15 technology tags."
+        },
+        "metrics": {
+          "type": "array",
+          "description": "Bounded list of up to 6 quantified outcome items."
+        },
+        "testimonial": {
+          "type": "object",
+          "description": "Attributable client quote (optional fields may be empty strings)."
+        },
+        "coverMediaId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128,
+          "description": "Optional reference to a CaseMedia document used as card cover."
+        },
+        "scenes": {
+          "type": "array",
+          "description": "Bounded ordered list of up to 10 interactive scenes (n8n-json, ui-telegram, ui-web, ui-n8n-image) with clickable hotspots."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set at creation (immutable)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp updated on every write."
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "status",
+        "sortOrder",
+        "featuredInHero",
+        "category",
+        "relatedServiceId",
+        "year",
+        "titleUk",
+        "titleEn",
+        "industryUk",
+        "industryEn",
+        "durationUk",
+        "durationEn",
+        "headlineMetricUk",
+        "headlineMetricEn",
+        "summaryUk",
+        "summaryEn",
+        "challengeUk",
+        "challengeEn",
+        "solutionUk",
+        "solutionEn",
+        "stack",
+        "metrics",
+        "testimonial",
+        "coverMediaId",
+        "scenes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CaseMedia": {
+      "title": "CaseMedia",
+      "description": "Compressed WebP/PNG/JPEG screenshot stored in a dedicated document to keep main case documents lightweight and under 1MB.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "caseId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["draft", "published", "unlisted"]
+        },
+        "mimeType": {
+          "type": "string",
+          "enum": ["image/webp", "image/png", "image/jpeg"]
+        },
+        "dataUrl": {
+          "type": "string",
+          "minLength": 30,
+          "maxLength": 650000,
+          "pattern": "^data:image/(webp|png|jpeg);base64,[A-Za-z0-9+/=]+$"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "caseId",
+        "ownerId",
+        "visibility",
+        "mimeType",
+        "dataUrl",
+        "width",
+        "height",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CaseWorkflow": {
+      "title": "CaseWorkflow",
+      "description": "Sanitized n8n workflow stored as native Firestore Maps and Lists (no nested arrays, no JSON strings) for live animated rendering.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "caseId": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["draft", "published", "unlisted"]
+        },
+        "workflowName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "nodes": {
+          "type": "array",
+          "description": "Bounded list of up to 40 sanitized n8n node maps."
+        },
+        "links": {
+          "type": "array",
+          "description": "Bounded flat list of up to 80 connection link maps."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "caseId",
+        "ownerId",
+        "visibility",
+        "workflowName",
+        "nodes",
+        "links",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PortfolioSettings": {
+      "title": "PortfolioSettings",
+      "description": "Global owner configuration controlling Hero featured case selection, static case visibility, and non-secret AI failover routing (provider priority, pause toggles, and model IDs).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "heroCaseId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80
+        },
+        "hiddenStaticCaseIds": {
+          "type": "array",
+          "description": "Bounded list of up to 10 static case IDs hidden from the public grid."
+        },
+        "aiProviderOrder": {
+          "type": "array",
+          "description": "Bounded ordered allowlist of up to 4 AI provider IDs (gemini, openai, anthropic, openrouter)."
+        },
+        "aiDisabledProviders": {
+          "type": "array",
+          "description": "Bounded allowlist of up to 4 paused AI provider IDs skipped during failover."
+        },
+        "aiOpenaiModel": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9._:/-]*$",
+          "description": "Non-secret OpenAI model ID override (e.g. gpt-4o-mini)."
+        },
+        "aiAnthropicModel": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9._:/-]*$",
+          "description": "Non-secret Anthropic model ID override (e.g. claude-3-5-haiku-latest)."
+        },
+        "aiOpenrouterModel": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120,
+          "pattern": "^[a-zA-Z0-9._:/-]*$",
+          "description": "Non-secret OpenRouter model ID override (e.g. google/gemini-2.5-flash)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "heroCaseId", "hiddenStaticCaseIds", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/cases/{caseId}": {
+      "schema": { "$ref": "#/entities/PortfolioCase" },
+      "description": "Portfolio case studies. Publicly listable only when status == 'published'; unlisted accessible by direct ID; drafts and all writes strictly owner-admin only."
+    },
+    "/case_media/{mediaId}": {
+      "schema": { "$ref": "#/entities/CaseMedia" },
+      "description": "Compressed screenshot media documents linked atomically to parent cases/{caseId}."
+    },
+    "/case_workflows/{workflowId}": {
+      "schema": { "$ref": "#/entities/CaseWorkflow" },
+      "description": "Sanitized n8n workflow graphs linked atomically to parent cases/{caseId}."
+    },
+    "/portfolio_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/PortfolioSettings" },
+      "description": "Singleton 'main' document storing Hero showcase override, hidden static case IDs, and non-secret AI provider routing & model selections."
+    }
+  }
+}

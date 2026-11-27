@@ -1,0 +1,123 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    letter-spacing: 0.008em;
+  }
+}
+
+/* Subtle custom scrollbar strictly for compact mobile inner pane overflow */
+.inner-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 113, 108, 0.28) transparent;
+}
+
+.inner-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.inner-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.inner-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(120, 113, 108, 0.3);
+  border-radius: 9999px;
+}
+
+/* Custom tactile cross-browser range slider for ROI calculators */
+.roi-range-slider {
+  --slider-active: #cc4518;
+  --slider-track: #e6e0d6;
+  --slider-thumb-bg: #ffffff;
+  --slider-thumb-ring: #cc4518;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--slider-active) 0%,
+    var(--slider-active) var(--slider-fill, 0%),
+    var(--slider-track) var(--slider-fill, 0%),
+    var(--slider-track) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.dark .roi-range-slider {
+  --slider-active: #f97343;
+  --slider-track: #2e2c28;
+  --slider-thumb-bg: #181715;
+  --slider-thumb-ring: #fb8356;
+}
+
+.roi-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--slider-thumb-bg);
+  border: 2.5px solid var(--slider-thumb-ring);
+  box-shadow: 0 1px 3px rgba(22, 21, 19, 0.22);
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease;
+}
+
+.roi-range-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+
+.roi-range-slider:active::-webkit-slider-thumb {
+  transform: scale(1.14);
+}
+
+.roi-range-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(204, 69, 24, 0.26);
+}
+
+.roi-range-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--slider-thumb-bg);
+  border: 2.5px solid var(--slider-thumb-ring);
+  box-shadow: 0 1px 3px rgba(22, 21, 19, 0.22);
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease;
+}
+
+.roi-range-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
