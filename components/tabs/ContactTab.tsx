@@ -290,7 +290,7 @@ export default function ContactTab({
             <div className="space-y-1 min-w-0">
               <p className="text-xs font-semibold text-[#161513] dark:text-[#F5F3EE]">
                 {locale === 'uk'
-                  ? 'Олександр Михальський · Магістр торгівлі та економіки (ВТЕІ ДТЕУ)'
+                  ? 'Олександр Михальський · Магістр торгівлі та економіки (ВТЕІ КНТЕУ)'
                   : 'Oleksandr Mykhalskyi · M.Sc. in Trade & Economics'}
               </p>
               <p className="text-xs text-[#555049] dark:text-[#A8A298] leading-relaxed">
